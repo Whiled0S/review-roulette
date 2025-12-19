@@ -1,6 +1,28 @@
 import { useGameStore } from '../../store/gameStore';
 import './Overlay.css';
 
+// Get initials from name
+const getInitials = (name: string): string => {
+  const parts = name.split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
+// Generate a color based on developer name
+const getColorFromName = (name: string): string => {
+  const colors = [
+    '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#a29bfe',
+    '#fd79a8', '#00b894', '#e17055', '#74b9ff', '#55efc4', '#fab1a0',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
 export const Overlay = () => {
   const { isSpinning, winners, spin, reset, winnerCount, setWinnerCount } =
     useGameStore();
@@ -30,7 +52,7 @@ export const Overlay = () => {
           <span className="reviewer-count">{winnerCount}</span>
           <button
             onClick={() => setWinnerCount(winnerCount + 1)}
-            disabled={winnerCount >= 6 || isSpinning}
+            disabled={winnerCount >= 3 || isSpinning}
             className="reviewer-btn"
           >
             +
@@ -93,11 +115,20 @@ export const Overlay = () => {
                   }}
                 >
                   <div className="winner-avatar-wrapper">
-                    <img
-                      src={winner.avatarUrl}
-                      alt={winner.name}
-                      className="winner-avatar"
-                    />
+                    {winner.avatarUrl ? (
+                      <img
+                        src={winner.avatarUrl}
+                        alt={winner.name}
+                        className="winner-avatar"
+                      />
+                    ) : (
+                      <div
+                        className="winner-avatar winner-avatar--initials"
+                        style={{ backgroundColor: getColorFromName(winner.name) }}
+                      >
+                        {getInitials(winner.name)}
+                      </div>
+                    )}
                     <div className="winner-badge">{index + 1}</div>
                   </div>
                   <div className="winner-info">

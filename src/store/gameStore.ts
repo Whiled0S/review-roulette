@@ -3,13 +3,14 @@ import { create } from 'zustand';
 export interface Developer {
   id: string;
   name: string;
-  avatarUrl: string;
+  avatarUrl?: string; // Optional - some developers may not have avatars
 }
 
 interface GameState {
   isSpinning: boolean;
   developers: Developer[];
   winners: Developer[];
+  pendingWinners: Developer[]; // Pre-selected winners during spin
   winnerCount: number;
   spin: () => void;
   reset: () => void;
@@ -25,7 +26,7 @@ const mockDevelopers: Developer[] = [
   {
     id: '2',
     name: 'Sarah Miller',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Sarah',
+    // No avatar - will show initials "SM"
   },
   {
     id: '3',
@@ -35,7 +36,7 @@ const mockDevelopers: Developer[] = [
   {
     id: '4',
     name: 'Emma Wilson',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Emma',
+    // No avatar - will show initials "EW"
   },
   {
     id: '5',
@@ -49,6 +50,7 @@ const mockDevelopers: Developer[] = [
   },
 ];
 
+// Select unique random winners
 const selectRandomWinners = (
   developers: Developer[],
   count: number
@@ -61,28 +63,32 @@ export const useGameStore = create<GameState>((set, get) => ({
   isSpinning: false,
   developers: mockDevelopers,
   winners: [],
+  pendingWinners: [],
   winnerCount: 2,
 
   spin: () => {
     const { isSpinning, developers, winnerCount } = get();
     if (isSpinning) return;
 
-    set({ isSpinning: true, winners: [] });
+    // Pre-select unique winners before spinning
+    const pendingWinners = selectRandomWinners(developers, winnerCount);
+    
+    set({ isSpinning: true, winners: [], pendingWinners });
 
     const spinDuration = 3000 + Math.random() * 1000;
 
     setTimeout(() => {
-      const winners = selectRandomWinners(developers, winnerCount);
-      set({ isSpinning: false, winners });
+      // Use the pre-selected winners
+      set({ isSpinning: false, winners: pendingWinners });
     }, spinDuration);
   },
 
   reset: () => {
-    set({ winners: [], isSpinning: false });
+    set({ winners: [], pendingWinners: [], isSpinning: false });
   },
 
   setWinnerCount: (count: number) => {
-    set({ winnerCount: Math.max(1, Math.min(count, get().developers.length)) });
+    // Limit to max 3 reels
+    set({ winnerCount: Math.max(1, Math.min(count, 3)) });
   },
 }));
-
