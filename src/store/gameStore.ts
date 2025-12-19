@@ -21,7 +21,7 @@ const mockDevelopers: Developer[] = [
   {
     id: '1',
     name: 'Alex Chen',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Alex',
+    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/png?seed=Alex&size=128',
   },
   {
     id: '2',
@@ -31,7 +31,7 @@ const mockDevelopers: Developer[] = [
   {
     id: '3',
     name: 'Mike Johnson',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Mike',
+    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/png?seed=Mike&size=128',
   },
   {
     id: '4',
@@ -41,12 +41,12 @@ const mockDevelopers: Developer[] = [
   {
     id: '5',
     name: 'David Park',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=David',
+    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/png?seed=David&size=128',
   },
   {
     id: '6',
     name: 'Lisa Zhang',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Lisa',
+    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/png?seed=Lisa&size=128',
   },
 ];
 

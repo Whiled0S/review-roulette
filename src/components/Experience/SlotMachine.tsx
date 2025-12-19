@@ -1,9 +1,48 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { RoundedBox, Text, Html } from '@react-three/drei';
+import { RoundedBox, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { useGameStore, type Developer } from '../../store/gameStore';
+
+// Texture cache to avoid reloading
+const textureCache = new Map<string, THREE.Texture>();
+const loadingTextures = new Map<string, Promise<THREE.Texture>>();
+
+const loadTexture = (url: string): Promise<THREE.Texture> => {
+  if (textureCache.has(url)) {
+    return Promise.resolve(textureCache.get(url)!);
+  }
+  
+  if (loadingTextures.has(url)) {
+    return loadingTextures.get(url)!;
+  }
+  
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('anonymous');
+  
+  const promise = new Promise<THREE.Texture>((resolve, reject) => {
+    loader.load(
+      url,
+      (texture) => {
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.needsUpdate = true;
+        textureCache.set(url, texture);
+        loadingTextures.delete(url);
+        resolve(texture);
+      },
+      undefined,
+      (error) => {
+        console.error('Failed to load texture:', url, error);
+        loadingTextures.delete(url);
+        reject(error);
+      }
+    );
+  });
+  
+  loadingTextures.set(url, promise);
+  return promise;
+};
 
 interface SlotMachineProps {
   position?: [number, number, number];
@@ -22,7 +61,7 @@ const getColorFromName = (name: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-// Get initials from name (first letter of first name + first letter of last name)
+// Get initials from name
 const getInitials = (name: string): string => {
   const parts = name.split(' ');
   if (parts.length >= 2) {
@@ -35,72 +74,75 @@ interface DeveloperSegmentProps {
   developer: Developer;
   angle: number;
   radius: number;
-  reelWidth: number;
+  segmentWidth: number;
 }
 
-const DeveloperSegment = ({ developer, angle, radius, reelWidth }: DeveloperSegmentProps) => {
+const DeveloperSegment = ({ developer, angle, radius, segmentWidth }: DeveloperSegmentProps) => {
   const initials = getInitials(developer.name);
   const bgColor = getColorFromName(developer.name);
+  const segmentHeight = 0.25;
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const avatarSize = 0.09;
+  
+  // Load texture if avatar URL exists
+  useEffect(() => {
+    if (developer.avatarUrl) {
+      setLoadFailed(false);
+      loadTexture(developer.avatarUrl)
+        .then((tex) => {
+          setTexture(tex);
+        })
+        .catch(() => {
+          setTexture(null);
+          setLoadFailed(true);
+        });
+    }
+  }, [developer.avatarUrl]);
+  
+  const showInitials = !texture || loadFailed;
   
   return (
     <group rotation={[angle, 0, 0]}>
-      <Html
-        position={[0, 0, radius + 0.01]}
-        center
-        distanceFactor={2.5}
-        style={{
-          width: `${reelWidth * 100}px`,
-          height: '60px',
-          pointerEvents: 'none',
-        }}
-        transform
-        occlude={false}
-      >
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: developer.avatarUrl ? '#1a1a2e' : bgColor,
-            borderRadius: '8px',
-            overflow: 'hidden',
-          }}
+      {/* Segment background panel */}
+      <mesh position={[0, 0, radius]}>
+        <planeGeometry args={[segmentWidth, segmentHeight]} />
+        <meshStandardMaterial 
+          color={bgColor} 
+          metalness={0.2} 
+          roughness={0.6}
+        />
+      </mesh>
+      
+      {/* Avatar with texture or initials background */}
+      <mesh position={[0, 0, radius + 0.005]}>
+        <circleGeometry args={[avatarSize, 32]} />
+        {texture && !loadFailed ? (
+          <meshBasicMaterial map={texture} />
+        ) : (
+          <meshStandardMaterial 
+            color="#1a1a2e"
+            metalness={0.2} 
+            roughness={0.8}
+          />
+        )}
+      </mesh>
+      
+      {/* Initials text - only show if no texture */}
+      {showInitials && (
+        <Text
+          position={[0, 0, radius + 0.01]}
+          fontSize={0.07}
+          color="#ffffff"
+          anchorX="center"
+          anchorY="middle"
+          fontWeight="bold"
+          outlineWidth={0.003}
+          outlineColor="#000000"
         >
-          {developer.avatarUrl ? (
-            <img
-              src={developer.avatarUrl}
-              alt={developer.name}
-              style={{
-                width: '50px',
-                height: '50px',
-                borderRadius: '50%',
-                objectFit: 'cover',
-                background: '#2d3436',
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: '50px',
-                height: '50px',
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#fff',
-                fontFamily: 'system-ui, sans-serif',
-              }}
-            >
-              {initials}
-            </div>
-          )}
-        </div>
-      </Html>
+          {initials}
+        </Text>
+      )}
     </group>
   );
 };
@@ -126,8 +168,8 @@ const Reel = ({
 
   const segmentCount = developers.length;
   const segmentAngle = (Math.PI * 2) / segmentCount;
-  const radius = 0.32;
-  const reelWidth = 0.55;
+  const radius = 0.28;
+  const reelWidth = 0.48;
 
   // Find target developer index
   const targetIndex = useMemo(() => {
@@ -136,45 +178,10 @@ const Reel = ({
     return index >= 0 ? index : 0;
   }, [developers, targetDeveloper]);
 
-  // Create colored cylinder geometry with vertex colors
-  const cylinderGeometry = useMemo(() => {
-    const geo = new THREE.CylinderGeometry(radius, radius, reelWidth, 64, 1, false);
-    const positionAttr = geo.attributes.position;
-    const colorArray = new Float32Array(positionAttr.count * 3);
-
-    for (let i = 0; i < positionAttr.count; i++) {
-      const x = positionAttr.getX(i);
-      const y = positionAttr.getY(i);
-      const z = positionAttr.getZ(i);
-      
-      // Calculate angle around cylinder axis
-      const angle = Math.atan2(z, x);
-      const shiftedAngle = angle + Math.PI + segmentAngle / 2;
-      const normalizedAngle = ((shiftedAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-      const segmentIndex = Math.floor(normalizedAngle / segmentAngle) % segmentCount;
-
-      const developer = developers[segmentIndex];
-      const color = new THREE.Color(getColorFromName(developer.name));
-      
-      // Darken the caps
-      if (Math.abs(y) > reelWidth / 2 - 0.01) {
-        color.multiplyScalar(0.4);
-      }
-      
-      colorArray[i * 3] = color.r;
-      colorArray[i * 3 + 1] = color.g;
-      colorArray[i * 3 + 2] = color.b;
-    }
-
-    geo.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
-    return geo;
-  }, [developers, radius, reelWidth, segmentAngle, segmentCount]);
-
   useFrame((_, delta) => {
     if (!spinGroupRef.current) return;
 
     if (isSpinning) {
-      // Reset all stop flags when spinning starts
       hasStoppedRef.current = false;
       shouldStopRef.current = false;
       wasSpinningRef.current = true;
@@ -203,19 +210,12 @@ const Reel = ({
           shouldStopRef.current = false;
           hasStoppedRef.current = true;
           
-          // Calculate target rotation to land on specific developer
-          // When group rotates by θ, developer at index i (at angle i*segmentAngle) 
-          // ends up at angle (θ + i*segmentAngle). For it to face forward (angle 0),
-          // we need: θ + i*segmentAngle ≡ 0 (mod 2π)
-          // So: θ ≡ -i*segmentAngle (mod 2π)
           const targetAngle = ((Math.PI * 2) - (targetIndex * segmentAngle)) % (Math.PI * 2);
           const currentRotation = spinGroupRef.current.rotation.x;
           
-          // Find the nearest rotation that lands on target (going forward)
           const fullRotations = Math.floor(currentRotation / (Math.PI * 2));
           let finalTarget = fullRotations * Math.PI * 2 + targetAngle;
           
-          // Make sure we're going forward, not backward
           while (finalTarget < currentRotation) {
             finalTarget += Math.PI * 2;
           }
@@ -236,37 +236,70 @@ const Reel = ({
 
   return (
     <group position={position}>
-      {/* Static frame elements - don't rotate */}
-      <mesh position={[reelWidth / 2 + 0.02, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[radius + 0.05, radius + 0.05, 0.04, 32]} />
-        <meshStandardMaterial color="#2d3436" metalness={0.8} roughness={0.2} />
+      {/* Static frame - gold rings on sides */}
+      <mesh position={[reelWidth / 2 + 0.01, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <torusGeometry args={[radius + 0.02, 0.02, 12, 32]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.1} />
       </mesh>
-      <mesh position={[-reelWidth / 2 - 0.02, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[radius + 0.05, radius + 0.05, 0.04, 32]} />
-        <meshStandardMaterial color="#2d3436" metalness={0.8} roughness={0.2} />
+      <mesh position={[-reelWidth / 2 - 0.01, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <torusGeometry args={[radius + 0.02, 0.02, 12, 32]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.1} />
       </mesh>
 
-      {/* Spinning parts */}
+      {/* Side caps */}
+      <mesh position={[reelWidth / 2 + 0.015, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[radius + 0.03, radius + 0.03, 0.02, 32]} />
+        <meshStandardMaterial color="#2d3436" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[-reelWidth / 2 - 0.015, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[radius + 0.03, radius + 0.03, 0.02, 32]} />
+        <meshStandardMaterial color="#2d3436" metalness={0.7} roughness={0.3} />
+      </mesh>
+
+      {/* Spinning group */}
       <group ref={spinGroupRef}>
-        {/* Main cylinder with colored segments */}
-        <mesh rotation={[0, 0, Math.PI / 2]} geometry={cylinderGeometry} castShadow>
-          <meshStandardMaterial vertexColors metalness={0.3} roughness={0.6} />
+        {/* Central drum/axis - smaller inner cylinder */}
+        <mesh rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[radius * 0.3, radius * 0.3, reelWidth, 16]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.8} roughness={0.2} />
         </mesh>
 
-        {/* Developer segments */}
-        {developers.map((developer, i) => {
-          const angle = i * segmentAngle;
+        {/* Spokes connecting center to segments */}
+        {developers.map((_, i) => {
+          const spokeAngle = i * segmentAngle;
           return (
-            <DeveloperSegment
-              key={developer.id}
-              developer={developer}
-              angle={angle}
-              radius={radius}
-              reelWidth={reelWidth}
-            />
+            <mesh 
+              key={`spoke-${i}`} 
+              position={[0, 0, 0]}
+              rotation={[spokeAngle, 0, 0]}
+            >
+              <mesh position={[0, 0, radius * 0.5]}>
+                <boxGeometry args={[reelWidth * 0.8, 0.02, radius * 0.4]} />
+                <meshStandardMaterial color="#2d3436" metalness={0.6} roughness={0.4} />
+              </mesh>
+            </mesh>
           );
         })}
+
+        {/* Developer segments on the outside */}
+        {developers.map((developer, i) => (
+          <DeveloperSegment
+            key={developer.id}
+            developer={developer}
+            angle={i * segmentAngle}
+            radius={radius}
+            segmentWidth={reelWidth - 0.06}
+          />
+        ))}
       </group>
+
+      {/* Inner glow */}
+      <pointLight
+        position={[0, 0, 0]}
+        intensity={0.3}
+        distance={0.6}
+        color="#fffaf0"
+      />
     </group>
   );
 };
@@ -295,30 +328,33 @@ const Lever = ({ onPull }: { onPull: () => void }) => {
 
   return (
     <group ref={groupRef}>
+      {/* Lever base plate */}
+      <mesh position={[0, -0.7, 0]} castShadow>
+        <boxGeometry args={[0.12, 0.06, 0.12]} />
+        <meshStandardMaterial color="#1a1a2e" metalness={0.8} roughness={0.2} />
+      </mesh>
+
+      {/* Lever arm */}
       <mesh position={[0, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.06, 0.06, 1.2, 16]} />
-        <meshStandardMaterial color="#636e72" metalness={0.8} roughness={0.2} />
+        <cylinderGeometry args={[0.04, 0.04, 1.3, 16]} />
+        <meshStandardMaterial color="#4a4a4a" metalness={0.9} roughness={0.2} />
       </mesh>
 
-      <mesh position={[0, -0.65, 0]} castShadow>
-        <cylinderGeometry args={[0.12, 0.15, 0.15, 16]} />
-        <meshStandardMaterial color="#2d3436" metalness={0.7} roughness={0.3} />
-      </mesh>
-
+      {/* Lever handle */}
       <mesh
-        position={[0, 0.7, 0]}
+        position={[0, 0.75, 0]}
         onClick={handleClick}
         onPointerOver={() => (document.body.style.cursor = 'pointer')}
         onPointerOut={() => (document.body.style.cursor = 'default')}
         castShadow
       >
-        <sphereGeometry args={[0.15, 32, 32]} />
+        <sphereGeometry args={[0.1, 32, 32]} />
         <meshStandardMaterial
-          color={isSpinning ? '#636e72' : '#e74c3c'}
-          metalness={0.6}
-          roughness={0.3}
+          color={isSpinning ? '#4a4a4a' : '#e74c3c'}
+          metalness={0.7}
+          roughness={0.2}
           emissive={isSpinning ? '#000000' : '#e74c3c'}
-          emissiveIntensity={isSpinning ? 0 : 0.4}
+          emissiveIntensity={isSpinning ? 0 : 0.5}
         />
       </mesh>
     </group>
@@ -336,9 +372,8 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
   const basePositionRef = useRef(new THREE.Vector3(...position));
   const baseScaleRef = useRef(new THREE.Vector3(1, 1, 1));
 
-  // Calculate reel positions based on number of reels
   const reelPositions = useMemo(() => {
-    const reelSpacing = 0.75;
+    const reelSpacing = 0.62;
     const positions: [number, number, number][] = [];
     
     for (let i = 0; i < winnerCount; i++) {
@@ -349,12 +384,11 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
     return positions;
   }, [winnerCount]);
 
-  // Calculate divider positions
   const dividerPositions = useMemo(() => {
     if (winnerCount <= 1) return [];
     
     const positions: number[] = [];
-    const reelSpacing = 0.75;
+    const reelSpacing = 0.62;
     
     for (let i = 0; i < winnerCount - 1; i++) {
       const leftReel = (i - (winnerCount - 1) / 2) * reelSpacing;
@@ -365,17 +399,16 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
     return positions;
   }, [winnerCount]);
 
-  // Dynamic width based on number of reels
-  const machineWidth = 1.2 + winnerCount * 0.6;
-  const screenWidth = 0.6 + winnerCount * 0.55;
+  const machineWidth = 0.9 + winnerCount * 0.55;
+  const screenWidth = 0.4 + winnerCount * 0.48;
 
   useFrame((state) => {
     if (!groupRef.current) return;
 
     if (isSpinning) {
       const time = state.clock.elapsedTime;
-      const shakeIntensity = 0.015;
-      const pulseIntensity = 0.015;
+      const shakeIntensity = 0.01;
+      const pulseIntensity = 0.01;
 
       groupRef.current.position.x =
         basePositionRef.current.x + (Math.random() - 0.5) * shakeIntensity;
@@ -392,15 +425,14 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
     }
   });
 
-  // Fixed lever position - always on the right side of the machine body
-  const leverXPosition = (machineWidth + 0.8) / 2 + 0.15;
+  const leverXPosition = (machineWidth + 0.75) / 2 + 0.1;
 
   return (
     <group ref={groupRef} position={position}>
-      {/* Main body - dynamic width */}
+      {/* Main body */}
       <RoundedBox
-        args={[machineWidth + 0.8, 2.6, 1.4]}
-        radius={0.12}
+        args={[machineWidth + 0.75, 2.5, 1.3]}
+        radius={0.1}
         smoothness={4}
         position={[0, 0.2, 0]}
         castShadow
@@ -408,24 +440,13 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         <meshStandardMaterial color="#2d3436" metalness={0.7} roughness={0.3} />
       </RoundedBox>
 
-      {/* Screen bezel - dynamic width */}
-      <RoundedBox
-        args={[screenWidth + 0.3, 0.95, 0.2]}
-        radius={0.05}
-        smoothness={4}
-        position={[0, 0.5, 0.62]}
-        castShadow
-      >
-        <meshStandardMaterial color="#1a1a2e" metalness={0.5} roughness={0.5} />
-      </RoundedBox>
-
-      {/* Screen background */}
-      <mesh position={[0, 0.5, 0.52]}>
-        <boxGeometry args={[screenWidth + 0.1, 0.8, 0.02]} />
-        <meshStandardMaterial color="#050510" />
+      {/* Screen area - recessed dark area */}
+      <mesh position={[0, 0.5, 0.56]}>
+        <boxGeometry args={[screenWidth + 0.15, 0.75, 0.1]} />
+        <meshStandardMaterial color="#0a0a12" metalness={0.5} roughness={0.5} />
       </mesh>
 
-      {/* Dynamic reels - each with its target winner */}
+      {/* Dynamic reels */}
       {reelPositions.map((pos, index) => (
         <Reel
           key={index}
@@ -436,16 +457,16 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         />
       ))}
 
-      {/* Dynamic dividers between reels */}
+      {/* Dividers between reels */}
       {dividerPositions.map((xPos, index) => (
         <mesh key={index} position={[xPos, 0.5, 0.58]}>
-          <boxGeometry args={[0.06, 0.85, 0.12]} />
-          <meshStandardMaterial color="#1a1a2e" metalness={0.8} roughness={0.2} />
+          <boxGeometry args={[0.03, 0.65, 0.08]} />
+          <meshStandardMaterial color="#0a0a12" metalness={0.8} roughness={0.2} />
         </mesh>
       ))}
 
       {/* Win line indicators */}
-      <mesh position={[-(screenWidth / 2 + 0.25), 0.5, 0.65]} rotation={[0, 0, -Math.PI / 2]}>
+      <mesh position={[-(screenWidth / 2 + 0.15), 0.5, 0.62]} rotation={[0, 0, -Math.PI / 2]}>
         <coneGeometry args={[0.04, 0.1, 3]} />
         <meshStandardMaterial
           color="#ffd700"
@@ -453,7 +474,7 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
           emissiveIntensity={isSpinning ? 1 : 0.3}
         />
       </mesh>
-      <mesh position={[(screenWidth / 2 + 0.25), 0.5, 0.65]} rotation={[0, 0, Math.PI / 2]}>
+      <mesh position={[(screenWidth / 2 + 0.15), 0.5, 0.62]} rotation={[0, 0, Math.PI / 2]}>
         <coneGeometry args={[0.04, 0.1, 3]} />
         <meshStandardMaterial
           color="#ffd700"
@@ -462,48 +483,50 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         />
       </mesh>
 
-      {/* Base/stand - dynamic width */}
+      {/* Base */}
       <RoundedBox
-        args={[machineWidth + 0.9, 0.25, 1.5]}
-        radius={0.05}
+        args={[machineWidth + 0.85, 0.2, 1.4]}
+        radius={0.04}
         smoothness={4}
-        position={[0, -1.2, 0]}
+        position={[0, -1.15, 0]}
         castShadow
       >
         <meshStandardMaterial color="#1a1a2e" metalness={0.8} roughness={0.2} />
       </RoundedBox>
 
-      {/* Top marquee - dynamic width */}
-      <mesh position={[0, 1.65, 0]} castShadow>
-        <boxGeometry args={[machineWidth + 0.2, 0.35, 0.9]} />
+      {/* Top marquee */}
+      <mesh position={[0, 1.6, 0]} castShadow>
+        <boxGeometry args={[machineWidth + 0.15, 0.3, 0.85]} />
         <meshStandardMaterial
-          color="#e74c3c"
+          color="#c41e3a"
           metalness={0.5}
           roughness={0.4}
-          emissive="#e74c3c"
+          emissive="#c41e3a"
           emissiveIntensity={isSpinning ? 0.6 : 0.25}
         />
       </mesh>
 
       {/* Marquee text */}
       <Text
-        position={[0, 1.65, 0.5]}
-        fontSize={0.12}
+        position={[0, 1.6, 0.45]}
+        fontSize={0.1}
         color="#ffffff"
         anchorX="center"
         anchorY="middle"
         fontWeight="bold"
+        outlineWidth={0.004}
+        outlineColor="#000000"
       >
         REVIEW ROULETTE
       </Text>
 
-      {/* Decorative lights on top - dynamic positions */}
+      {/* Top lights */}
       {Array.from({ length: Math.min(5, winnerCount + 2) }).map((_, i) => {
         const spacing = machineWidth / (Math.min(5, winnerCount + 2) + 1);
         const xPos = (i + 1) * spacing - machineWidth / 2;
         return (
-          <mesh key={i} position={[xPos, 1.85, 0.3]} castShadow>
-            <sphereGeometry args={[0.06, 16, 16]} />
+          <mesh key={i} position={[xPos, 1.78, 0.28]} castShadow>
+            <sphereGeometry args={[0.04, 16, 16]} />
             <meshStandardMaterial
               color={isSpinning ? '#ffeb3b' : '#ff6b6b'}
               emissive={isSpinning ? '#ffeb3b' : '#ff6b6b'}
@@ -513,33 +536,35 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         );
       })}
 
-      {/* Point lights for glow effect */}
-      {reelPositions.map((pos, i) => (
-        <pointLight
-          key={i}
-          position={[pos[0], 0.5, 1]}
-          intensity={isSpinning ? 1.5 : 0.3}
-          distance={2}
-          color={isSpinning ? '#ffeb3b' : '#ff6b6b'}
-        />
-      ))}
+      {/* Screen lighting */}
+      <pointLight
+        position={[0, 0.5, 0.9]}
+        intensity={isSpinning ? 0.8 : 0.4}
+        distance={1.5}
+        color="#ffffff"
+      />
 
-      {/* Lever - fixed position relative to machine body */}
+      {/* Lever */}
       <group position={[leverXPosition, 0.3, 0]}>
         <Lever onPull={spin} />
       </group>
 
-      {/* Coin slot decoration */}
-      <mesh position={[0, -0.4, 0.72]} castShadow>
-        <boxGeometry args={[0.5, 0.08, 0.05]} />
-        <meshStandardMaterial color="#c0a000" metalness={0.9} roughness={0.1} />
+      {/* Coin slot */}
+      <mesh position={[0, -0.35, 0.68]} castShadow>
+        <boxGeometry args={[0.35, 0.05, 0.03]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.1} />
       </mesh>
 
       {/* Payout tray */}
-      <mesh position={[0, -0.85, 0.8]} castShadow>
-        <boxGeometry args={[Math.max(1.2, machineWidth * 0.5), 0.4, 0.3]} />
+      <RoundedBox
+        args={[Math.max(0.9, machineWidth * 0.45), 0.3, 0.25]}
+        radius={0.02}
+        smoothness={4}
+        position={[0, -0.8, 0.75]}
+        castShadow
+      >
         <meshStandardMaterial color="#1a1a2e" metalness={0.6} roughness={0.4} />
-      </mesh>
+      </RoundedBox>
     </group>
   );
 };
