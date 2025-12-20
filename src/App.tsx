@@ -1,6 +1,6 @@
-import { Scene } from './components/Experience/Scene';
-import { Overlay } from './components/UI/Overlay';
-import './App.css';
+import { Scene } from "./components/Experience/Scene";
+import { Overlay } from "./components/UI/Overlay";
+import "./App.css";
 
 const App = () => {
   return (

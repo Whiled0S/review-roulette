@@ -1,7 +1,7 @@
-import { Canvas } from '@react-three/fiber';
-import { Environment, OrbitControls } from '@react-three/drei';
-import { Suspense } from 'react';
-import { SlotMachine } from './SlotMachine';
+import { Canvas } from "@react-three/fiber";
+import { Environment, OrbitControls } from "@react-three/drei";
+import { Suspense } from "react";
+import { SlotMachine } from "./SlotMachine";
 
 const SceneContent = () => {
   return (
@@ -23,7 +23,11 @@ const SceneContent = () => {
 
       <SlotMachine position={[0, 0, 0]} />
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]} receiveShadow>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, -1.5, 0]}
+        receiveShadow
+      >
         <planeGeometry args={[20, 20]} />
         <meshStandardMaterial color="#1a1a2e" metalness={0.8} roughness={0.4} />
       </mesh>
@@ -37,10 +41,10 @@ export const Scene = () => {
       shadows
       camera={{ position: [0, 2, 6], fov: 50 }}
       style={{
-        width: '100%',
-        height: '100%',
-        display: 'block',
-        background: 'linear-gradient(180deg, #0f0f23 0%, #1a1a3e 100%)',
+        width: "100%",
+        height: "100%",
+        display: "block",
+        background: "linear-gradient(180deg, #0f0f23 0%, #1a1a3e 100%)",
       }}
     >
       <Suspense fallback={null}>

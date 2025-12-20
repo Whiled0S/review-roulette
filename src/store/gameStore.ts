@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 export interface Developer {
   id: string;
@@ -19,41 +19,41 @@ interface GameState {
 
 const mockDevelopers: Developer[] = [
   {
-    id: '1',
-    name: 'Alex Chen',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/png?seed=Alex&size=128',
+    id: "1",
+    name: "Alex Chen",
+    avatarUrl: "https://api.dicebear.com/9.x/avataaars/png?seed=Alex&size=128",
   },
   {
-    id: '2',
-    name: 'Sarah Miller',
+    id: "2",
+    name: "Sarah Miller",
     // No avatar - will show initials "SM"
   },
   {
-    id: '3',
-    name: 'Mike Johnson',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/png?seed=Mike&size=128',
+    id: "3",
+    name: "Mike Johnson",
+    avatarUrl: "https://api.dicebear.com/9.x/avataaars/png?seed=Mike&size=128",
   },
   {
-    id: '4',
-    name: 'Emma Wilson',
+    id: "4",
+    name: "Emma Wilson",
     // No avatar - will show initials "EW"
   },
   {
-    id: '5',
-    name: 'David Park',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/png?seed=David&size=128',
+    id: "5",
+    name: "David Park",
+    avatarUrl: "https://api.dicebear.com/9.x/avataaars/png?seed=David&size=128",
   },
   {
-    id: '6',
-    name: 'Lisa Zhang',
-    avatarUrl: 'https://api.dicebear.com/9.x/avataaars/png?seed=Lisa&size=128',
+    id: "6",
+    name: "Lisa Zhang",
+    avatarUrl: "https://api.dicebear.com/9.x/avataaars/png?seed=Lisa&size=128",
   },
 ];
 
 // Select unique random winners
 const selectRandomWinners = (
   developers: Developer[],
-  count: number
+  count: number,
 ): Developer[] => {
   const shuffled = [...developers].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, Math.min(count, developers.length));
@@ -72,7 +72,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // Pre-select unique winners before spinning
     const pendingWinners = selectRandomWinners(developers, winnerCount);
-    
+
     set({ isSpinning: true, winners: [], pendingWinners });
 
     const spinDuration = 3000 + Math.random() * 1000;
