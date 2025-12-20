@@ -4,17 +4,12 @@ import { Avatar } from "../common";
 interface WinnersPanelProps {
   winners: Developer[];
   onClose: () => void;
-  onSpinAgain: () => void;
 }
 
 /**
  * Panel showing selected reviewers after spin completes
  */
-export const WinnersPanel = ({
-  winners,
-  onClose,
-  onSpinAgain,
-}: WinnersPanelProps) => {
+export const WinnersPanel = ({ winners, onClose }: WinnersPanelProps) => {
   return (
     <div className="winners-panel">
       <div className="winners-content">
@@ -45,10 +40,6 @@ export const WinnersPanel = ({
             </div>
           ))}
         </div>
-
-        <button onClick={onSpinAgain} className="spin-again-btn">
-          🎰 Spin Again
-        </button>
       </div>
     </div>
   );

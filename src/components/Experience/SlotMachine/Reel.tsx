@@ -97,19 +97,19 @@ export const Reel = ({
 
   return (
     <group position={position}>
-      {/* Static frame - gold rings on sides */}
+      {/* Static frame - gold rings on sides (aligned with reel axis) */}
       <mesh
         position={[reelWidth / 2 + 0.01, 0, 0]}
-        rotation={[0, 0, Math.PI / 2]}
+        rotation={[0, Math.PI / 2, 0]}
       >
-        <torusGeometry args={[radius + 0.02, 0.02, 12, 32]} />
+        <torusGeometry args={[radius + 0.02, 0.018, 12, 32]} />
         <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.1} />
       </mesh>
       <mesh
         position={[-reelWidth / 2 - 0.01, 0, 0]}
-        rotation={[0, 0, Math.PI / 2]}
+        rotation={[0, Math.PI / 2, 0]}
       >
-        <torusGeometry args={[radius + 0.02, 0.02, 12, 32]} />
+        <torusGeometry args={[radius + 0.02, 0.018, 12, 32]} />
         <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.1} />
       </mesh>
 

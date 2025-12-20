@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { useGameStore } from "../../../store/gameStore";
 import { Reel } from "./Reel";
 import { Lever } from "./Lever";
+import { SpinButton } from "./SpinButton";
 
 interface SlotMachineProps {
   position?: [number, number, number];
@@ -21,13 +22,18 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
   const basePositionRef = useRef(new THREE.Vector3(...position));
   const baseScaleRef = useRef(new THREE.Vector3(1, 1, 1));
 
+  // Dynamic sizing based on winner count
+  const machineWidth = 0.9 + winnerCount * 0.55;
+  const reelWindowWidth = 0.35 + winnerCount * 0.5;
+  const consoleWidth = machineWidth + 0.4;
+
   const reelPositions = useMemo(() => {
     const reelSpacing = 0.62;
     const positions: [number, number, number][] = [];
 
     for (let i = 0; i < winnerCount; i++) {
       const offset = (i - (winnerCount - 1) / 2) * reelSpacing;
-      positions.push([offset, 0.5, 0.4]);
+      positions.push([offset, 0.35, 0.3]);
     }
 
     return positions;
@@ -48,16 +54,13 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
     return positions;
   }, [winnerCount]);
 
-  const machineWidth = 0.9 + winnerCount * 0.55;
-  const screenWidth = 0.4 + winnerCount * 0.48;
-
   useFrame((state) => {
     if (!groupRef.current) return;
 
     if (isSpinning) {
       const time = state.clock.elapsedTime;
-      const shakeIntensity = 0.01;
-      const pulseIntensity = 0.01;
+      const shakeIntensity = 0.008;
+      const pulseIntensity = 0.008;
 
       groupRef.current.position.x =
         basePositionRef.current.x + (Math.random() - 0.5) * shakeIntensity;
@@ -75,28 +78,186 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
     }
   });
 
-  const leverXPosition = (machineWidth + 0.75) / 2 + 0.1;
+  // Lever closer to the body
+  const leverXPosition = (machineWidth + 0.5) / 2 + 0.12;
 
   return (
     <group ref={groupRef} position={position}>
-      {/* Main body */}
+      {/* ========== MAIN CHASSIS (back body) ========== */}
       <RoundedBox
-        args={[machineWidth + 0.75, 2.5, 1.3]}
-        radius={0.1}
+        args={[machineWidth + 0.5, 2.4, 0.9]}
+        radius={0.06}
         smoothness={4}
-        position={[0, 0.2, 0]}
+        position={[0, 0.2, -0.15]}
         castShadow
       >
-        <meshStandardMaterial color="#2d3436" metalness={0.7} roughness={0.3} />
+        <meshStandardMaterial
+          color="#2a332a"
+          metalness={0.5}
+          roughness={0.85}
+        />
       </RoundedBox>
 
-      {/* Screen area - recessed dark area */}
-      <mesh position={[0, 0.5, 0.56]}>
-        <boxGeometry args={[screenWidth + 0.15, 0.75, 0.1]} />
-        <meshStandardMaterial color="#0a0a12" metalness={0.5} roughness={0.5} />
+      {/* ========== TOP SECTION: CRT MONITOR ========== */}
+      {/* CRT housing */}
+      <RoundedBox
+        args={[machineWidth + 0.35, 0.55, 0.4]}
+        radius={0.04}
+        smoothness={4}
+        position={[0, 1.15, 0.1]}
+        castShadow
+      >
+        <meshStandardMaterial
+          color="#1e251e"
+          metalness={0.65}
+          roughness={0.7}
+        />
+      </RoundedBox>
+
+      {/* CRT screen bezel (outer frame) */}
+      <RoundedBox
+        args={[machineWidth + 0.18, 0.42, 0.12]}
+        radius={0.03}
+        smoothness={4}
+        position={[0, 1.15, 0.32]}
+      >
+        <meshStandardMaterial color="#0f140f" metalness={0.8} roughness={0.5} />
+      </RoundedBox>
+
+      {/* CRT thick glass - outer layer (reflective) */}
+      <RoundedBox
+        args={[machineWidth + 0.02, 0.34, 0.06]}
+        radius={0.02}
+        smoothness={4}
+        position={[0, 1.15, 0.38]}
+      >
+        <meshStandardMaterial
+          color="#0a1f0d"
+          metalness={0.3}
+          roughness={0.15}
+          transparent
+          opacity={0.7}
+        />
+      </RoundedBox>
+
+      {/* CRT thick glass - inner glow layer */}
+      <RoundedBox
+        args={[machineWidth - 0.04, 0.3, 0.02]}
+        radius={0.015}
+        smoothness={4}
+        position={[0, 1.15, 0.35]}
+      >
+        <meshStandardMaterial
+          color="#041a08"
+          metalness={0.1}
+          roughness={0.3}
+          emissive="#00ff55"
+          emissiveIntensity={isSpinning ? 0.6 : 0.35}
+        />
+      </RoundedBox>
+
+      {/* CRT status text - monospace */}
+      <Text
+        position={[0, 1.15, 0.42]}
+        fontSize={0.1}
+        fontWeight="bold"
+        color={"#b3ffc6"}
+        anchorX="center"
+        anchorY="middle"
+        font="https://fonts.gstatic.com/s/sourcecodepro/v23/HI_SiYsKILxRpg3hIP6sJ7fM7PqlPevT.ttf"
+        outlineWidth={0.002}
+        outlineColor="#001a05"
+      >
+        {isSpinning ? "ВЫБИРАЕМ..." : "РЕВЬЮ РУЛЕТКА"}
+      </Text>
+
+      {/* CRT glow */}
+      <pointLight
+        position={[0, 1.15, 0.6]}
+        intensity={isSpinning ? 0.8 : 0.5}
+        distance={1.8}
+        color="#55ff88"
+      />
+
+      {/* CRT screws */}
+      {[
+        [-machineWidth / 2 - 0.04, 1.34],
+        [machineWidth / 2 + 0.04, 1.34],
+        [-machineWidth / 2 - 0.04, 0.96],
+        [machineWidth / 2 + 0.04, 0.96],
+      ].map(([sx, sy], i) => (
+        <mesh
+          key={`crt-screw-${i}`}
+          position={[sx, sy, 0.34]}
+          rotation={[Math.PI / 2, 0, 0]}
+        >
+          <cylinderGeometry args={[0.018, 0.018, 0.025, 8]} />
+          <meshStandardMaterial color="#0a0d0a" metalness={1} roughness={0.3} />
+        </mesh>
+      ))}
+
+      {/* ========== MIDDLE SECTION: REEL WINDOW ========== */}
+      {/* Window frame (dark recessed area for reels) */}
+      <RoundedBox
+        args={[reelWindowWidth + 0.12, 0.75, 0.15]}
+        radius={0.04}
+        smoothness={4}
+        position={[0, 0.35, 0.28]}
+      >
+        <meshStandardMaterial color="#080a08" metalness={0.6} roughness={0.5} />
+      </RoundedBox>
+
+      {/* Side panels around reel window */}
+      <mesh position={[-(reelWindowWidth / 2 + 0.18), 0.35, 0.3]}>
+        <boxGeometry args={[0.12, 0.7, 0.12]} />
+        <meshStandardMaterial
+          color="#252d25"
+          metalness={0.55}
+          roughness={0.8}
+        />
+      </mesh>
+      <mesh position={[reelWindowWidth / 2 + 0.18, 0.35, 0.3]}>
+        <boxGeometry args={[0.12, 0.7, 0.12]} />
+        <meshStandardMaterial
+          color="#252d25"
+          metalness={0.55}
+          roughness={0.8}
+        />
       </mesh>
 
-      {/* Dynamic reels */}
+      {/* Win line indicators */}
+      <mesh
+        position={[-(reelWindowWidth / 2 + 0.08), 0.35, 0.38]}
+        rotation={[0, 0, -Math.PI / 2]}
+      >
+        <coneGeometry args={[0.035, 0.08, 3]} />
+        <meshStandardMaterial
+          color="#ffc800"
+          emissive="#ffaa00"
+          emissiveIntensity={isSpinning ? 0.9 : 0.25}
+        />
+      </mesh>
+      <mesh
+        position={[reelWindowWidth / 2 + 0.08, 0.35, 0.38]}
+        rotation={[0, 0, Math.PI / 2]}
+      >
+        <coneGeometry args={[0.035, 0.08, 3]} />
+        <meshStandardMaterial
+          color="#ffc800"
+          emissive="#ffaa00"
+          emissiveIntensity={isSpinning ? 0.9 : 0.25}
+        />
+      </mesh>
+
+      {/* Reel window lighting */}
+      <pointLight
+        position={[0, 0.35, 0.7]}
+        intensity={isSpinning ? 0.6 : 0.35}
+        distance={1.2}
+        color="#fffaf0"
+      />
+
+      {/* ========== REELS ========== */}
       {reelPositions.map((pos, index) => (
         <Reel
           key={index}
@@ -109,122 +270,155 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
 
       {/* Dividers between reels */}
       {dividerPositions.map((xPos, index) => (
-        <mesh key={index} position={[xPos, 0.5, 0.58]}>
-          <boxGeometry args={[0.03, 0.65, 0.08]} />
+        <mesh key={`div-${index}`} position={[xPos, 0.35, 0.42]}>
+          <boxGeometry args={[0.025, 0.6, 0.06]} />
           <meshStandardMaterial
-            color="#0a0a12"
-            metalness={0.8}
-            roughness={0.2}
+            color="#0a0c0a"
+            metalness={0.75}
+            roughness={0.35}
           />
         </mesh>
       ))}
 
-      {/* Win line indicators */}
-      <mesh
-        position={[-(screenWidth / 2 + 0.15), 0.5, 0.62]}
-        rotation={[0, 0, -Math.PI / 2]}
-      >
-        <coneGeometry args={[0.04, 0.1, 3]} />
-        <meshStandardMaterial
-          color="#ffd700"
-          emissive="#ffd700"
-          emissiveIntensity={isSpinning ? 1 : 0.3}
-        />
-      </mesh>
-      <mesh
-        position={[screenWidth / 2 + 0.15, 0.5, 0.62]}
-        rotation={[0, 0, Math.PI / 2]}
-      >
-        <coneGeometry args={[0.04, 0.1, 3]} />
-        <meshStandardMaterial
-          color="#ffd700"
-          emissive="#ffd700"
-          emissiveIntensity={isSpinning ? 1 : 0.3}
-        />
-      </mesh>
+      {/* ========== BOTTOM SECTION: CONSOLE WITH KEYBOARD LEDGE ========== */}
+      <group position={[0, -0.55, 0.35]}>
+        {/* Main console block */}
+        <RoundedBox
+          args={[consoleWidth, 0.45, 0.55]}
+          radius={0.04}
+          smoothness={4}
+          position={[0, 0, 0]}
+          castShadow
+        >
+          <meshStandardMaterial
+            color="#2a332a"
+            metalness={0.5}
+            roughness={0.85}
+          />
+        </RoundedBox>
 
-      {/* Base */}
+        {/* Angled keyboard ledge */}
+        <group position={[0, 0.2, 0.28]} rotation={[-0.3, 0, 0]}>
+          <RoundedBox
+            args={[consoleWidth - 0.1, 0.1, 0.45]}
+            radius={0.025}
+            smoothness={4}
+            castShadow
+          >
+            <meshStandardMaterial
+              color="#1e251e"
+              metalness={0.6}
+              roughness={0.7}
+            />
+          </RoundedBox>
+
+          {/* SPIN BUTTON - raised higher */}
+          <SpinButton
+            enabled={!isSpinning}
+            onPress={spin}
+            position={[0, 0.2, 0]}
+            width={consoleWidth * 0.55}
+          />
+        </group>
+
+        {/* Vents on console front */}
+        {Array.from({ length: Math.min(10, Math.floor(consoleWidth * 5)) }).map(
+          (_, i) => {
+            const ventCount = Math.min(10, Math.floor(consoleWidth * 5));
+            const ventSpacing = (consoleWidth - 0.3) / ventCount;
+            const x = (i - (ventCount - 1) / 2) * ventSpacing;
+            return (
+              <mesh key={`vent-${i}`} position={[x, -0.08, 0.28]}>
+                <boxGeometry args={[0.04, 0.15, 0.015]} />
+                <meshStandardMaterial
+                  color="#0a0d0a"
+                  metalness={0.85}
+                  roughness={0.5}
+                />
+              </mesh>
+            );
+          },
+        )}
+
+        {/* Console edge trim */}
+        <mesh position={[0, 0.22, 0.275]}>
+          <boxGeometry args={[consoleWidth - 0.05, 0.02, 0.02]} />
+          <meshStandardMaterial
+            color="#3a4238"
+            metalness={0.7}
+            roughness={0.5}
+          />
+        </mesh>
+      </group>
+
+      {/* ========== BASE PLATE ========== */}
       <RoundedBox
-        args={[machineWidth + 0.85, 0.2, 1.4]}
-        radius={0.04}
+        args={[consoleWidth + 0.15, 0.12, 1.1]}
+        radius={0.03}
         smoothness={4}
-        position={[0, -1.15, 0]}
+        position={[0, -0.95, 0.08]}
         castShadow
       >
-        <meshStandardMaterial color="#1a1a2e" metalness={0.8} roughness={0.2} />
+        <meshStandardMaterial
+          color="#1a201a"
+          metalness={0.75}
+          roughness={0.6}
+        />
       </RoundedBox>
 
-      {/* Top marquee */}
-      <mesh position={[0, 1.6, 0]} castShadow>
-        <boxGeometry args={[machineWidth + 0.15, 0.3, 0.85]} />
-        <meshStandardMaterial
-          color="#c41e3a"
-          metalness={0.5}
-          roughness={0.4}
-          emissive="#c41e3a"
-          emissiveIntensity={isSpinning ? 0.6 : 0.25}
-        />
-      </mesh>
+      {/* Base feet */}
+      {[
+        [-(consoleWidth / 2 + 0.02), -1.02, -0.35],
+        [consoleWidth / 2 + 0.02, -1.02, -0.35],
+        [-(consoleWidth / 2 + 0.02), -1.02, 0.45],
+        [consoleWidth / 2 + 0.02, -1.02, 0.45],
+      ].map(([fx, fy, fz], i) => (
+        <mesh key={`foot-${i}`} position={[fx, fy, fz]}>
+          <cylinderGeometry args={[0.06, 0.05, 0.04, 12]} />
+          <meshStandardMaterial
+            color="#0d100d"
+            metalness={0.9}
+            roughness={0.4}
+          />
+        </mesh>
+      ))}
 
-      {/* Marquee text */}
-      <Text
-        position={[0, 1.6, 0.45]}
-        fontSize={0.1}
-        color="#ffffff"
-        anchorX="center"
-        anchorY="middle"
-        fontWeight="bold"
-        outlineWidth={0.004}
-        outlineColor="#000000"
-      >
-        REVIEW ROULETTE
-      </Text>
-
-      {/* Top lights */}
-      {Array.from({ length: Math.min(5, winnerCount + 2) }).map((_, i) => {
-        const spacing = machineWidth / (Math.min(5, winnerCount + 2) + 1);
-        const xPos = (i + 1) * spacing - machineWidth / 2;
-        return (
-          <mesh key={i} position={[xPos, 1.78, 0.28]} castShadow>
-            <sphereGeometry args={[0.04, 16, 16]} />
-            <meshStandardMaterial
-              color={isSpinning ? "#ffeb3b" : "#ff6b6b"}
-              emissive={isSpinning ? "#ffeb3b" : "#ff6b6b"}
-              emissiveIntensity={isSpinning ? 1.5 : 0.5}
-            />
-          </mesh>
-        );
-      })}
-
-      {/* Screen lighting */}
-      <pointLight
-        position={[0, 0.5, 0.9]}
-        intensity={isSpinning ? 0.8 : 0.4}
-        distance={1.5}
-        color="#ffffff"
-      />
-
-      {/* Lever */}
-      <group position={[leverXPosition, 0.3, 0]}>
+      {/* ========== LEVER (closer and bigger) ========== */}
+      <group position={[leverXPosition, 0.1, 0.1]}>
         <Lever onPull={spin} />
       </group>
 
-      {/* Coin slot */}
-      <mesh position={[0, -0.35, 0.68]} castShadow>
-        <boxGeometry args={[0.35, 0.05, 0.03]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.1} />
-      </mesh>
+      {/* ========== DECORATIVE DETAILS ========== */}
+      {/* Side rivets/bolts */}
+      {[-1, 1].map((side) =>
+        [0.9, 0.4, -0.1].map((yPos, i) => (
+          <mesh
+            key={`rivet-${side}-${i}`}
+            position={[side * (machineWidth / 2 + 0.28), yPos, 0.1]}
+            rotation={[0, (side * Math.PI) / 2, 0]}
+          >
+            <cylinderGeometry args={[0.02, 0.02, 0.04, 6]} />
+            <meshStandardMaterial
+              color="#2a2f2a"
+              metalness={0.95}
+              roughness={0.3}
+            />
+          </mesh>
+        )),
+      )}
 
-      {/* Payout tray */}
-      <RoundedBox
-        args={[Math.max(0.9, machineWidth * 0.45), 0.3, 0.25]}
-        radius={0.02}
-        smoothness={4}
-        position={[0, -0.8, 0.75]}
-        castShadow
+      {/* Warning label on side */}
+      <Text
+        position={[machineWidth / 2 + 0.27, 0.6, 0.12]}
+        fontSize={0.035}
+        color="#8b8b6a"
+        anchorX="center"
+        anchorY="middle"
+        rotation={[0, Math.PI / 2, 0]}
+        font="https://fonts.gstatic.com/s/sourcecodepro/v23/HI_SiYsKILxRpg3hIP6sJ7fM7PqlPevT.ttf"
       >
-        <meshStandardMaterial color="#1a1a2e" metalness={0.6} roughness={0.4} />
-      </RoundedBox>
+        VAULT-TEC
+      </Text>
     </group>
   );
 };

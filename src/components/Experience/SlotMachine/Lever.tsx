@@ -15,7 +15,7 @@ export const Lever = ({ onPull }: LeverProps) => {
     if (isSpinning || !groupRef.current) return;
 
     gsap.to(groupRef.current.rotation, {
-      z: -0.8,
+      z: -0.9,
       duration: 0.2,
       ease: "power2.out",
       onComplete: () => {
@@ -29,37 +29,93 @@ export const Lever = ({ onPull }: LeverProps) => {
     });
   };
 
+  // Bigger lever dimensions
+  const armRadius = 0.065;
+  const armHeight = 1.5;
+  const handleRadius = 0.11;
+  const gripRadius = 0.085;
+
   return (
     <group ref={groupRef}>
-      {/* Lever base plate */}
-      <mesh position={[0, -0.7, 0]} castShadow>
-        <boxGeometry args={[0.12, 0.06, 0.12]} />
-        <meshStandardMaterial color="#1a1a2e" metalness={0.8} roughness={0.2} />
+      {/* Lever base housing - bigger */}
+      <mesh position={[0, -0.82, 0]} castShadow>
+        <boxGeometry args={[0.22, 0.1, 0.22]} />
+        <meshStandardMaterial
+          color="#2b2f2a"
+          metalness={0.8}
+          roughness={0.55}
+        />
       </mesh>
 
-      {/* Lever arm */}
-      <mesh position={[0, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.04, 0.04, 1.3, 16]} />
-        <meshStandardMaterial color="#4a4a4a" metalness={0.9} roughness={0.2} />
+      {/* Base bolts */}
+      {[
+        [-0.08, -0.77, 0.08],
+        [0.08, -0.77, 0.08],
+        [-0.08, -0.77, -0.08],
+        [0.08, -0.77, -0.08],
+      ].map(([x, y, z], i) => (
+        <mesh
+          key={`bolt-${i}`}
+          position={[x, y, z]}
+          rotation={[Math.PI / 2, 0, 0]}
+          castShadow
+        >
+          <cylinderGeometry args={[0.015, 0.015, 0.025, 10]} />
+          <meshStandardMaterial
+            color="#0d0f0d"
+            metalness={1}
+            roughness={0.35}
+          />
+        </mesh>
+      ))}
+
+      {/* Lever arm - thicker and taller */}
+      <mesh position={[0, -0.05, 0]} castShadow>
+        <cylinderGeometry args={[armRadius, armRadius, armHeight, 16]} />
+        <meshStandardMaterial
+          color="#3a3f3a"
+          metalness={0.9}
+          roughness={0.35}
+        />
       </mesh>
 
-      {/* Lever handle */}
+      {/* Grip sleeve - bigger */}
+      <mesh position={[0, 0.62, 0]} castShadow>
+        <cylinderGeometry args={[gripRadius, gripRadius, 0.32, 16]} />
+        <meshStandardMaterial
+          color="#151716"
+          metalness={0.2}
+          roughness={0.95}
+        />
+      </mesh>
+
+      {/* Lever handle cap (click target) - bigger */}
       <mesh
-        position={[0, 0.75, 0]}
+        position={[0, 0.9, 0]}
         onClick={handleClick}
         onPointerOver={() => (document.body.style.cursor = "pointer")}
         onPointerOut={() => (document.body.style.cursor = "default")}
         castShadow
       >
-        <sphereGeometry args={[0.1, 32, 32]} />
+        <cylinderGeometry args={[handleRadius, handleRadius, 0.15, 18]} />
         <meshStandardMaterial
-          color={isSpinning ? "#4a4a4a" : "#e74c3c"}
-          metalness={0.7}
-          roughness={0.2}
-          emissive={isSpinning ? "#000000" : "#e74c3c"}
+          color={isSpinning ? "#3a3f3a" : "#b1121a"}
+          metalness={0.35}
+          roughness={0.45}
+          emissive={isSpinning ? "#000000" : "#ff2b2b"}
           emissiveIntensity={isSpinning ? 0 : 0.5}
         />
       </mesh>
+
+      {/* Glow when active */}
+      {!isSpinning && (
+        <pointLight
+          position={[0, 0.9, 0.15]}
+          intensity={0.25}
+          distance={0.5}
+          color="#ff3333"
+        />
+      )}
     </group>
   );
 };
