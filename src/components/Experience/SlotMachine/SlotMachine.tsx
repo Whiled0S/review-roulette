@@ -156,7 +156,7 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         />
       </RoundedBox>
 
-      {/* CRT status text - monospace */}
+      {/* CRT status text - monospace font */}
       <Text
         position={[0, 1.15, 0.42]}
         fontSize={0.1}
@@ -164,11 +164,11 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         color={"#b3ffc6"}
         anchorX="center"
         anchorY="middle"
-        font="https://fonts.gstatic.com/s/sourcecodepro/v23/HI_SiYsKILxRpg3hIP6sJ7fM7PqlPevT.ttf"
+        font="/courier-prime.ttf"
         outlineWidth={0.002}
         outlineColor="#001a05"
       >
-        {isSpinning ? "ВЫБИРАЕМ..." : "РЕВЬЮ РУЛЕТКА"}
+        {isSpinning ? "...ВЫБИРАЕМ..." : "РЕВЬЮ РУЛЕТКА"}
       </Text>
 
       {/* CRT glow */}
@@ -415,7 +415,7 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         anchorX="center"
         anchorY="middle"
         rotation={[0, Math.PI / 2, 0]}
-        font="https://fonts.gstatic.com/s/sourcecodepro/v23/HI_SiYsKILxRpg3hIP6sJ7fM7PqlPevT.ttf"
+        font="/courier-prime.ttf"
       >
         VAULT-TEC
       </Text>

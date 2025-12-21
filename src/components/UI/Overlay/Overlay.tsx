@@ -1,5 +1,4 @@
 import { useGameStore } from "../../../store/gameStore";
-import { Header } from "./Header";
 import { Controls } from "./Controls";
 import { WinnersPanel } from "./WinnersPanel";
 import "./Overlay.css";
@@ -17,7 +16,6 @@ export const Overlay = () => {
 
   return (
     <>
-      <Header />
       <Controls />
       {showWinners && <WinnersPanel winners={winners} onClose={reset} />}
     </>

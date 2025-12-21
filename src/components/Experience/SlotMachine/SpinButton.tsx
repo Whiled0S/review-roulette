@@ -96,6 +96,7 @@ export const SpinButton = ({
       {/* Button label */}
       <Text
         position={[0, 0, buttonDepth * 0.9]}
+        font="/courier-prime.ttf"
         fontSize={Math.max(0.065, buttonWidth * 0.09)}
         color="#f8f4e3"
         anchorX="center"
@@ -104,7 +105,7 @@ export const SpinButton = ({
         outlineWidth={0.005}
         outlineColor="#0a0a0a"
       >
-        РЕВЬЮ
+        ВЫБРАТЬ
       </Text>
 
       {/* Glow when enabled */}
