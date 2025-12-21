@@ -92,6 +92,10 @@ export const DeveloperSegment = ({
           fontWeight="bold"
           outlineWidth={0.003}
           outlineColor="#000000"
+          renderOrder={0}
+          material-depthTest={true}
+          material-depthWrite={true}
+          material-side={THREE.FrontSide}
         >
           {initials}
         </Text>

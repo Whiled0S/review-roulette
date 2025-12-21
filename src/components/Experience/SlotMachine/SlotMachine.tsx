@@ -288,6 +288,7 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
           developers={developers}
           targetDeveloper={pendingWinners[index] || null}
           stopDelay={index * 400}
+          reelIndex={index}
         />
       ))}
 
