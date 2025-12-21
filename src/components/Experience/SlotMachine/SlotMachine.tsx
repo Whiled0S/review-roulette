@@ -1,19 +1,29 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useCallback, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RoundedBox, Text } from "@react-three/drei";
 import * as THREE from "three";
+import gsap from "gsap";
 import { useGameStore } from "../../../store/gameStore";
 import { Reel } from "./Reel";
-import { Lever } from "./Lever";
+import { Lever, type LeverHandle } from "./Lever";
 import { SpinButton } from "./SpinButton";
 import { Sparks } from "./Sparks";
+import { Smoke } from "./Smoke";
 
 interface SlotMachineProps {
   position?: [number, number, number];
 }
 
+const getTitleFontSize = (winnerCount: number): number => {
+  if (winnerCount === 1) return 0.22;
+  if (winnerCount === 2) return 0.28;
+
+  return 0.32;
+};
+
 export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
   const groupRef = useRef<THREE.Group>(null);
+  const leverRef = useRef<LeverHandle>(null);
   const isSpinning = useGameStore((state) => state.isSpinning);
   const spin = useGameStore((state) => state.spin);
   const developers = useGameStore((state) => state.developers);
@@ -22,11 +32,81 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
 
   const basePositionRef = useRef(new THREE.Vector3(...position));
   const baseScaleRef = useRef(new THREE.Vector3(1, 1, 1));
+  const [isShaking, setIsShaking] = useState(false);
+
+  // Shake animation when clicking the lamp
+  const shakeMachine = useCallback(() => {
+    if (!groupRef.current) return;
+
+    // Kill any existing shake animation
+    gsap.killTweensOf(groupRef.current.rotation);
+    gsap.killTweensOf(groupRef.current.position);
+
+    // Reset first
+    groupRef.current.rotation.set(0, 0, 0);
+
+    // Enable smoke during shake
+    setIsShaking(true);
+
+    // Create funny shake sequence
+    const tl = gsap.timeline({
+      onComplete: () => setIsShaking(false),
+    });
+
+    tl.to(groupRef.current.rotation, {
+      z: 0.05,
+      x: 0.02,
+      duration: 0.05,
+      ease: "power2.out",
+    })
+      .to(groupRef.current.rotation, {
+        z: -0.06,
+        x: -0.03,
+        duration: 0.07,
+        ease: "power2.inOut",
+      })
+      .to(groupRef.current.rotation, {
+        z: 0.04,
+        x: 0.02,
+        duration: 0.06,
+        ease: "power2.inOut",
+      })
+      .to(groupRef.current.rotation, {
+        z: -0.03,
+        x: -0.01,
+        duration: 0.05,
+        ease: "power2.inOut",
+      })
+      .to(groupRef.current.rotation, {
+        z: 0.02,
+        x: 0.01,
+        duration: 0.04,
+        ease: "power2.inOut",
+      })
+      .to(groupRef.current.rotation, {
+        z: 0,
+        x: 0,
+        duration: 0.08,
+        ease: "power2.out",
+      });
+
+    // Also do a little hop
+    gsap.to(groupRef.current.position, {
+      y: position[1] + 0.03,
+      duration: 0.1,
+      ease: "power2.out",
+      yoyo: true,
+      repeat: 1,
+    });
+  }, [position]);
 
   // Dynamic sizing based on winner count
   const machineWidth = 0.9 + winnerCount * 0.55;
   const reelWindowWidth = 0.35 + winnerCount * 0.5;
   const consoleWidth = machineWidth + 0.4;
+
+  // Font size based on winner count
+  const titleFontSize = getTitleFontSize(winnerCount);
 
   const reelPositions = useMemo(() => {
     const reelSpacing = 0.62;
@@ -99,103 +179,45 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         />
       </RoundedBox>
 
-      {/* ========== TOP SECTION: CRT MONITOR ========== */}
-      {/* CRT housing */}
+      {/* ========== TOP SECTION: TITLE SIGN ========== */}
+      {/* Sign frame (outer) */}
       <RoundedBox
-        args={[machineWidth + 0.35, 0.55, 0.4]}
+        args={[machineWidth + 0.5, 0.55, 0.1]}
         radius={0.04}
         smoothness={4}
-        position={[0, 1.15, 0.1]}
+        position={[0, 1.12, 0.22]}
         castShadow
       >
-        <meshStandardMaterial
-          color="#1e251e"
-          metalness={0.65}
-          roughness={0.7}
-        />
+        <meshStandardMaterial color="#2a2f2a" metalness={0.8} roughness={0.4} />
       </RoundedBox>
 
-      {/* CRT screen bezel (outer frame) */}
-      <RoundedBox
-        args={[machineWidth + 0.18, 0.42, 0.12]}
-        radius={0.03}
-        smoothness={4}
-        position={[0, 1.15, 0.32]}
-      >
-        <meshStandardMaterial color="#0f140f" metalness={0.8} roughness={0.5} />
-      </RoundedBox>
-
-      {/* CRT thick glass - outer layer (reflective) */}
-      <RoundedBox
-        args={[machineWidth + 0.02, 0.34, 0.06]}
-        radius={0.02}
-        smoothness={4}
-        position={[0, 1.15, 0.38]}
-      >
-        <meshStandardMaterial
-          color="#0a1f0d"
-          metalness={0.3}
-          roughness={0.15}
-          transparent
-          opacity={0.7}
-        />
-      </RoundedBox>
-
-      {/* CRT thick glass - inner glow layer */}
-      <RoundedBox
-        args={[machineWidth - 0.04, 0.3, 0.02]}
-        radius={0.015}
-        smoothness={4}
-        position={[0, 1.15, 0.35]}
-      >
-        <meshStandardMaterial
-          color="#041a08"
-          metalness={0.1}
-          roughness={0.3}
-          emissive="#00ff55"
-          emissiveIntensity={isSpinning ? 0.6 : 0.35}
-        />
-      </RoundedBox>
-
-      {/* CRT status text - monospace font */}
+      {/* Title text - "Review roulette" */}
       <Text
-        position={[0, 1.15, 0.42]}
-        fontSize={0.1}
-        fontWeight="bold"
-        color={"#b3ffc6"}
+        position={[0, 1.12, 0.32]}
+        fontSize={titleFontSize}
+        color="#ffc107"
         anchorX="center"
         anchorY="middle"
-        font="/courier-prime.ttf"
-        outlineWidth={0.002}
-        outlineColor="#001a05"
+        font="/LasEnter.ttf"
+        letterSpacing={0.02}
       >
-        {isSpinning ? "...ВЫБИРАЕМ..." : "РЕВЬЮ РУЛЕТКА"}
+        Review roulette
+        <meshStandardMaterial
+          color="#ffc107"
+          emissive="#ff8800"
+          emissiveIntensity={0.5}
+          metalness={0.3}
+          roughness={0.4}
+        />
       </Text>
 
-      {/* CRT glow */}
+      {/* Title glow */}
       <pointLight
-        position={[0, 1.15, 0.6]}
-        intensity={isSpinning ? 0.8 : 0.5}
-        distance={1.8}
-        color="#55ff88"
+        position={[0, 1.12, 0.5]}
+        intensity={0.8}
+        distance={1.5}
+        color="#ffaa00"
       />
-
-      {/* CRT screws */}
-      {[
-        [-machineWidth / 2 - 0.04, 1.34],
-        [machineWidth / 2 + 0.04, 1.34],
-        [-machineWidth / 2 - 0.04, 0.96],
-        [machineWidth / 2 + 0.04, 0.96],
-      ].map(([sx, sy], i) => (
-        <mesh
-          key={`crt-screw-${i}`}
-          position={[sx, sy, 0.34]}
-          rotation={[Math.PI / 2, 0, 0]}
-        >
-          <cylinderGeometry args={[0.018, 0.018, 0.025, 8]} />
-          <meshStandardMaterial color="#0a0d0a" metalness={1} roughness={0.3} />
-        </mesh>
-      ))}
 
       {/* ========== MIDDLE SECTION: REEL WINDOW ========== */}
       {/* Window frame (dark recessed area for reels) */}
@@ -292,7 +314,7 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
       ))}
 
       {/* ========== BOTTOM SECTION: CONSOLE WITH KEYBOARD LEDGE ========== */}
-      <group position={[0, -0.55, 0.35]}>
+      <group position={[0, -0.65, 0.35]}>
         {/* Main console block */}
         <RoundedBox
           args={[consoleWidth, 0.45, 0.55]}
@@ -309,24 +331,13 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         </RoundedBox>
 
         {/* Angled keyboard ledge */}
-        <group position={[0, 0.2, 0.28]} rotation={[-0.3, 0, 0]}>
-          <RoundedBox
-            args={[consoleWidth - 0.1, 0.1, 0.45]}
-            radius={0.025}
-            smoothness={4}
-            castShadow
-          >
-            <meshStandardMaterial
-              color="#1e251e"
-              metalness={0.6}
-              roughness={0.7}
-            />
-          </RoundedBox>
-
+        <group position={[0, 0.25, 0.32]} rotation={[-Math.PI / 2, 0, 0]}>
           {/* SPIN BUTTON - raised higher */}
           <SpinButton
             enabled={!isSpinning}
-            onPress={spin}
+            onPress={() => {
+              leverRef.current?.pull();
+            }}
             position={[0, 0.2, 0]}
             width={consoleWidth * 0.55}
           />
@@ -396,7 +407,7 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
 
       {/* ========== LEVER (closer and bigger) ========== */}
       <group position={[leverXPosition, 0.1, 0.1]}>
-        <Lever onPull={spin} />
+        <Lever ref={leverRef} onPull={spin} onImpact={shakeMachine} />
       </group>
 
       {/* ========== DECORATIVE DETAILS ========== */}
@@ -418,18 +429,105 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         )),
       )}
 
-      {/* Warning label on side */}
-      <Text
-        position={[machineWidth / 2 + 0.27, 0.6, 0.12]}
-        fontSize={0.035}
-        color="#8b8b6a"
-        anchorX="center"
-        anchorY="middle"
-        rotation={[0, Math.PI / 2, 0]}
-        font="/courier-prime.ttf"
-      >
-        VAULT-TEC
-      </Text>
+      {/* ========== SIDE LAMP (left side, opposite to lever) ========== */}
+      <group position={[-(machineWidth / 2 + 0.35), 0.5, 0.15]}>
+        {/* Lamp socket (патрон) */}
+        <mesh rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.035, 0.04, 0.08, 12]} />
+          <meshStandardMaterial
+            color="#2a2a2a"
+            metalness={0.9}
+            roughness={0.3}
+          />
+        </mesh>
+        {/* Bulb base (цоколь) */}
+        <mesh position={[-0.06, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.03, 0.035, 0.04, 12]} />
+          <meshStandardMaterial
+            color="#888888"
+            metalness={0.95}
+            roughness={0.2}
+          />
+        </mesh>
+        {/* Bulb glass (колба лампочки) - clickable */}
+        <mesh
+          position={[-0.14, 0, 0]}
+          rotation={[0, 0, Math.PI / 2]}
+          onClick={(e) => {
+            e.stopPropagation();
+            shakeMachine();
+          }}
+          onPointerOver={() => (document.body.style.cursor = "pointer")}
+          onPointerOut={() => (document.body.style.cursor = "default")}
+        >
+          <sphereGeometry args={[0.07, 16, 16]} />
+          <meshStandardMaterial
+            color="#ffffcc"
+            emissive="#ffcc00"
+            emissiveIntensity={3}
+            transparent
+            opacity={0.9}
+          />
+        </mesh>
+        {/* Inner filament glow */}
+        <mesh position={[-0.14, 0, 0]}>
+          <sphereGeometry args={[0.025, 8, 8]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+        {/* Lamp light */}
+        <pointLight
+          position={[-0.18, 0, 0]}
+          intensity={6}
+          distance={5}
+          color="#ffdd55"
+        />
+      </group>
+
+      {/* ========== EXHAUST PIPE (left side, bottom) ========== */}
+      <group position={[-(machineWidth / 2 + 0.28), -0.6, 0.1]}>
+        {/* Pipe mount flange */}
+        <mesh rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.06, 0.07, 0.04, 12]} />
+          <meshStandardMaterial
+            color="#2a2a2a"
+            metalness={0.85}
+            roughness={0.4}
+          />
+        </mesh>
+        {/* Main pipe */}
+        <mesh position={[-0.12, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.045, 0.05, 0.2, 12]} />
+          <meshStandardMaterial
+            color="#3a3a3a"
+            metalness={0.8}
+            roughness={0.5}
+          />
+        </mesh>
+        {/* Pipe elbow (going up) */}
+        <mesh position={[-0.22, 0.06, 0]} rotation={[0, 0, Math.PI / 4]}>
+          <cylinderGeometry args={[0.04, 0.045, 0.1, 12]} />
+          <meshStandardMaterial
+            color="#3a3a3a"
+            metalness={0.8}
+            roughness={0.5}
+          />
+        </mesh>
+        {/* Pipe tip */}
+        <mesh position={[-0.26, 0.14, 0]}>
+          <cylinderGeometry args={[0.035, 0.04, 0.08, 12]} />
+          <meshStandardMaterial
+            color="#2a2a2a"
+            metalness={0.9}
+            roughness={0.35}
+          />
+        </mesh>
+        {/* Smoke particles */}
+        <Smoke
+          position={[-0.26, 0.22, 0]}
+          active={isSpinning || isShaking}
+          count={20}
+        />
+      </group>
     </group>
   );
 };

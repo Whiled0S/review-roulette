@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { RoundedBox, Text } from "@react-three/drei";
+import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import gsap from "gsap";
 
@@ -92,21 +92,6 @@ export const SpinButton = ({
           emissiveIntensity={0}
         />
       </RoundedBox>
-
-      {/* Button label */}
-      <Text
-        position={[0, 0, buttonDepth * 0.9]}
-        font="/courier-prime.ttf"
-        fontSize={Math.max(0.065, buttonWidth * 0.09)}
-        color="#f8f4e3"
-        anchorX="center"
-        anchorY="middle"
-        fontWeight="bold"
-        outlineWidth={0.005}
-        outlineColor="#0a0a0a"
-      >
-        ВЫБРАТЬ
-      </Text>
 
       {/* Glow when enabled */}
       {enabled && (
