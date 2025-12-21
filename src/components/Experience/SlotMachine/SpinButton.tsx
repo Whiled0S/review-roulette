@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
@@ -26,6 +26,21 @@ export const SpinButton = ({
   const buttonDepth = 0.08;
   const housingPadding = 0.08;
 
+  // Button states: raised (enabled) vs pressed (spinning)
+  const raisedZ = buttonDepth * 0.8; // Выпуклая - готова к нажатию
+  const pressedZ = buttonDepth * 0.35; // Вжата в корпус
+
+  // Animate button state when enabled changes
+  useEffect(() => {
+    if (!capRef.current) return;
+
+    gsap.to(capRef.current.position, {
+      z: enabled ? raisedZ : pressedZ,
+      duration: 0.3,
+      ease: enabled ? "back.out(2)" : "power2.out",
+    });
+  }, [enabled, raisedZ, pressedZ]);
+
   useFrame(({ clock }) => {
     if (!capRef.current) return;
     const t = clock.getElapsedTime();
@@ -36,19 +51,15 @@ export const SpinButton = ({
   });
 
   const handleClick = () => {
-    if (!enabled || !groupRef.current) return;
+    if (!enabled || !capRef.current) return;
 
-    gsap.to(groupRef.current.position, {
-      z: position[2],
+    // Quick press animation
+    gsap.to(capRef.current.position, {
+      z: pressedZ,
       duration: 0.08,
       ease: "power2.out",
       onComplete: () => {
         onPress();
-        gsap.to(groupRef.current!.position, {
-          z: position[2],
-          duration: 0.2,
-          ease: "elastic.out(1, 0.55)",
-        });
       },
     });
   };
@@ -71,13 +82,13 @@ export const SpinButton = ({
         <meshStandardMaterial color="#1f241e" metalness={0.8} roughness={0.5} />
       </RoundedBox>
 
-      {/* Button cap */}
+      {/* Button cap - starts raised when enabled */}
       <RoundedBox
         ref={capRef}
         args={[buttonWidth, buttonHeight, buttonDepth * 0.7]}
         radius={0.02}
         smoothness={4}
-        position={[0, 0, buttonDepth * 0.45]}
+        position={[0, 0, enabled ? raisedZ : pressedZ]}
         onClick={handleClick}
         onPointerOver={() =>
           (document.body.style.cursor = enabled ? "pointer" : "default")

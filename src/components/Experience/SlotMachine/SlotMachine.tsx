@@ -193,7 +193,7 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
 
       {/* Title text - "Review roulette" */}
       <Text
-        position={[0, 1.12, 0.32]}
+        position={[0, 1.05, 0.32]}
         fontSize={titleFontSize}
         color="#ffc107"
         anchorX="center"
