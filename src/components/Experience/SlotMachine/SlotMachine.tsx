@@ -98,70 +98,60 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         />
       </RoundedBox>
 
-      {/* ========== TOP SECTION: CRT MONITOR ========== */}
-      {/* CRT housing */}
+      {/* ========== TOP SECTION: CRT SCREEN (attached to chassis) ========== */}
+      {/* Screen housing - extends from chassis front */}
       <RoundedBox
-        args={[machineWidth + 0.35, 0.55, 0.4]}
-        radius={0.04}
+        args={[machineWidth + 0.2, 0.5, 0.18]}
+        radius={0.035}
         smoothness={4}
-        position={[0, 1.15, 0.1]}
+        position={[0, 1.15, 0.4]}
         castShadow
       >
-        <meshStandardMaterial
-          color="#1e251e"
-          metalness={0.65}
-          roughness={0.7}
-        />
+        <meshStandardMaterial color="#1a211a" metalness={0.75} roughness={0.55} />
       </RoundedBox>
 
-      {/* CRT screen bezel (outer frame) */}
+      {/* Screen bezel */}
       <RoundedBox
-        args={[machineWidth + 0.18, 0.42, 0.12]}
-        radius={0.03}
+        args={[machineWidth + 0.08, 0.4, 0.06]}
+        radius={0.025}
         smoothness={4}
-        position={[0, 1.15, 0.32]}
+        position={[0, 1.15, 0.52]}
       >
-        <meshStandardMaterial color="#0f140f" metalness={0.8} roughness={0.5} />
+        <meshStandardMaterial color="#0d120d" metalness={0.85} roughness={0.4} />
       </RoundedBox>
 
-      {/* CRT thick glass - outer layer (reflective) */}
-      <RoundedBox
-        args={[machineWidth + 0.02, 0.34, 0.06]}
-        radius={0.02}
-        smoothness={4}
-        position={[0, 1.15, 0.38]}
-      >
+      {/* Screen display (glowing) */}
+      <mesh position={[0, 1.15, 0.56]}>
+        <planeGeometry args={[machineWidth - 0.05, 0.3]} />
         <meshStandardMaterial
-          color="#0a1f0d"
-          metalness={0.3}
-          roughness={0.15}
-          transparent
-          opacity={0.7}
-        />
-      </RoundedBox>
-
-      {/* CRT thick glass - inner glow layer */}
-      <RoundedBox
-        args={[machineWidth - 0.04, 0.3, 0.02]}
-        radius={0.015}
-        smoothness={4}
-        position={[0, 1.15, 0.35]}
-      >
-        <meshStandardMaterial
-          color="#041a08"
-          metalness={0.1}
-          roughness={0.3}
+          color="#031208"
+          metalness={0.05}
+          roughness={0.4}
           emissive="#00ff55"
-          emissiveIntensity={isSpinning ? 0.6 : 0.35}
+          emissiveIntensity={isSpinning ? 0.65 : 0.35}
         />
-      </RoundedBox>
+      </mesh>
 
-      {/* CRT status text - monospace font */}
+      {/* Glass overlay effect */}
+      <mesh position={[0, 1.15, 0.565]}>
+        <planeGeometry args={[machineWidth - 0.03, 0.32]} />
+        <meshPhysicalMaterial
+          color="#ffffff"
+          metalness={0}
+          roughness={0.05}
+          transparent
+          opacity={0.08}
+          clearcoat={1}
+          clearcoatRoughness={0.1}
+        />
+      </mesh>
+
+      {/* Screen text */}
       <Text
-        position={[0, 1.15, 0.42]}
-        fontSize={0.1}
+        position={[0, 1.15, 0.57]}
+        fontSize={0.09}
         fontWeight="bold"
-        color={"#b3ffc6"}
+        color="#b3ffc6"
         anchorX="center"
         anchorY="middle"
         font="/courier-prime.ttf"
@@ -171,30 +161,13 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
         {isSpinning ? "...ВЫБИРАЕМ..." : "РЕВЬЮ РУЛЕТКА"}
       </Text>
 
-      {/* CRT glow */}
+      {/* Screen glow */}
       <pointLight
-        position={[0, 1.15, 0.6]}
-        intensity={isSpinning ? 0.8 : 0.5}
+        position={[0, 1.15, 0.8]}
+        intensity={isSpinning ? 0.9 : 0.5}
         distance={1.8}
         color="#55ff88"
       />
-
-      {/* CRT screws */}
-      {[
-        [-machineWidth / 2 - 0.04, 1.34],
-        [machineWidth / 2 + 0.04, 1.34],
-        [-machineWidth / 2 - 0.04, 0.96],
-        [machineWidth / 2 + 0.04, 0.96],
-      ].map(([sx, sy], i) => (
-        <mesh
-          key={`crt-screw-${i}`}
-          position={[sx, sy, 0.34]}
-          rotation={[Math.PI / 2, 0, 0]}
-        >
-          <cylinderGeometry args={[0.018, 0.018, 0.025, 8]} />
-          <meshStandardMaterial color="#0a0d0a" metalness={1} roughness={0.3} />
-        </mesh>
-      ))}
 
       {/* ========== MIDDLE SECTION: REEL WINDOW ========== */}
       {/* Window frame (dark recessed area for reels) */}
