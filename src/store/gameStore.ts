@@ -3,14 +3,14 @@ import { create } from "zustand";
 export interface Developer {
   id: string;
   name: string;
-  avatarUrl?: string; // Optional - some developers may not have avatars
+  avatarUrl?: string;
 }
 
 interface GameState {
   isSpinning: boolean;
   developers: Developer[];
   winners: Developer[];
-  pendingWinners: Developer[]; // Pre-selected winners during spin
+  pendingWinners: Developer[];
   winnerCount: number;
   spin: () => void;
   reset: () => void;
@@ -20,37 +20,26 @@ interface GameState {
 const mockDevelopers: Developer[] = [
   {
     id: "1",
-    name: "Alex Chen",
-    avatarUrl: "https://api.dicebear.com/9.x/avataaars/png?seed=Alex&size=128",
+    name: "Артем Кукуруза",
+    avatarUrl: "/img/Artem.jpg",
   },
   {
     id: "2",
-    name: "Sarah Miller",
-    // No avatar - will show initials "SM"
+    name: "Илья Доронин",
+    avatarUrl: "/img/Ilya.jpg",
   },
   {
     id: "3",
-    name: "Mike Johnson",
-    avatarUrl: "https://api.dicebear.com/9.x/avataaars/png?seed=Mike&size=128",
+    name: "Алиса Абдеева",
+    avatarUrl: "/img/Alice.jpg",
   },
   {
     id: "4",
-    name: "Emma Wilson",
-    // No avatar - will show initials "EW"
-  },
-  {
-    id: "5",
-    name: "David Park",
-    avatarUrl: "https://api.dicebear.com/9.x/avataaars/png?seed=David&size=128",
-  },
-  {
-    id: "6",
-    name: "Lisa Zhang",
-    avatarUrl: "https://api.dicebear.com/9.x/avataaars/png?seed=Lisa&size=128",
+    name: "Михаил Власов",
+    avatarUrl: "/img/Michael.jpg",
   },
 ];
 
-// Select unique random winners
 const selectRandomWinners = (
   developers: Developer[],
   count: number,
@@ -70,7 +59,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { isSpinning, developers, winnerCount } = get();
     if (isSpinning) return;
 
-    // Pre-select unique winners before spinning
     const pendingWinners = selectRandomWinners(developers, winnerCount);
 
     set({ isSpinning: true, winners: [], pendingWinners });
@@ -78,7 +66,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     const spinDuration = 3000 + Math.random() * 1000;
 
     setTimeout(() => {
-      // Use the pre-selected winners
       set({ isSpinning: false, winners: pendingWinners });
     }, spinDuration);
   },
@@ -88,7 +75,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   setWinnerCount: (count: number) => {
-    // Limit to max 3 reels
     set({ winnerCount: Math.max(1, Math.min(count, 3)) });
   },
 }));
