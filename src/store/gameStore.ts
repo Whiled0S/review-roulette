@@ -11,6 +11,7 @@ interface GameState {
   allDevelopers: Developer[];
   developers: Developer[];
   excludedDeveloperIds: string[];
+  previewWinners: Developer[];
   winners: Developer[];
   pendingWinners: Developer[];
   winnerCount: number;
@@ -58,11 +59,19 @@ const getMaxWinnerCountFromDevelopers = (developers: Developer[]): number => {
   return Math.max(1, Math.min(MAX_WINNER_SLOTS, developers.length - 1));
 };
 
+const getPreviewWinners = (
+  developers: Developer[],
+  winnerCount: number,
+): Developer[] => {
+  return selectRandomWinners(developers, winnerCount);
+};
+
 export const useGameStore = create<GameState>((set, get) => ({
   isSpinning: false,
   allDevelopers: mockDevelopers,
   developers: mockDevelopers,
   excludedDeveloperIds: [],
+  previewWinners: getPreviewWinners(mockDevelopers, 2),
   winners: [],
   pendingWinners: [],
   winnerCount: 2,
@@ -83,13 +92,26 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   reset: () => {
-    set({ winners: [], pendingWinners: [], isSpinning: false });
+    const { developers, winnerCount } = get();
+    set({
+      winners: [],
+      pendingWinners: [],
+      previewWinners: getPreviewWinners(developers, winnerCount),
+      isSpinning: false,
+    });
   },
 
   setWinnerCount: (count: number) => {
     const { developers } = get();
     const maxWinnerCount = getMaxWinnerCountFromDevelopers(developers);
-    set({ winnerCount: Math.max(1, Math.min(count, maxWinnerCount)) });
+    const nextWinnerCount = Math.max(1, Math.min(count, maxWinnerCount));
+
+    set({
+      winnerCount: nextWinnerCount,
+      winners: [],
+      pendingWinners: [],
+      previewWinners: getPreviewWinners(developers, nextWinnerCount),
+    });
   },
 
   toggleDeveloperExclusion: (developerId: string) => {
@@ -110,11 +132,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     const nextMaxWinnerCount = getMaxWinnerCountFromDevelopers(nextDevelopers);
+    const nextWinnerCount = Math.max(
+      1,
+      Math.min(get().winnerCount, nextMaxWinnerCount),
+    );
 
     set({
       excludedDeveloperIds: nextExcludedDeveloperIds,
       developers: nextDevelopers,
-      winnerCount: Math.max(1, Math.min(get().winnerCount, nextMaxWinnerCount)),
+      winnerCount: nextWinnerCount,
+      previewWinners: getPreviewWinners(nextDevelopers, nextWinnerCount),
       winners: [],
       pendingWinners: [],
     });

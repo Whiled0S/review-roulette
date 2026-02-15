@@ -28,6 +28,7 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
   const spin = useGameStore((state) => state.spin);
   const developers = useGameStore((state) => state.developers);
   const winnerCount = useGameStore((state) => state.winnerCount);
+  const previewWinners = useGameStore((state) => state.previewWinners);
   const pendingWinners = useGameStore((state) => state.pendingWinners);
 
   const basePositionRef = useRef(new THREE.Vector3(...position));
@@ -286,7 +287,7 @@ export const SlotMachine = ({ position = [0, 0, 0] }: SlotMachineProps) => {
           key={index}
           position={pos}
           developers={developers}
-          targetDeveloper={pendingWinners[index] || null}
+          targetDeveloper={pendingWinners[index] || previewWinners[index] || null}
           stopDelay={index * 400}
           reelIndex={index}
         />

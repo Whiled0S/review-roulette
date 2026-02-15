@@ -61,12 +61,14 @@ const createSegments = (
   // Get 3 random developers (or fill with available if less)
   let randomDevs = getRandomItems(developers, DEV_SLOTS, reelSeed);
 
-  // Ensure target developer is in the list (replace first dev with target)
+  // Force target developer into the first visible slot.
   if (targetDeveloper) {
-    const hasTarget = randomDevs.some((d) => d.id === targetDeveloper.id);
-    if (!hasTarget) {
-      randomDevs = [targetDeveloper, ...randomDevs.slice(1)];
-    }
+    randomDevs = [
+      targetDeveloper,
+      ...randomDevs
+        .filter((developer) => developer.id !== targetDeveloper.id)
+        .slice(0, DEV_SLOTS - 1),
+    ];
   }
 
   // Get 3 random emojis - unique per reel
@@ -121,21 +123,33 @@ export const Reel = ({
 
   // Pending target developer - will be applied when reel reaches speed threshold
   const pendingTargetRef = useRef<Developer | null>(null);
+  // Last target that was actually visible in idle state
+  const lastVisibleTargetRef = useRef<Developer | null>(targetDeveloper);
 
   // Store frozen segments - these don't change until speed threshold is reached
   const [frozenSeed, setFrozenSeed] = useState(() => Date.now());
   const [frozenTarget, setFrozenTarget] = useState<Developer | null>(null);
 
-  // Create segments based on frozen state
+  const segmentTarget = isSpinning ? frozenTarget : targetDeveloper;
+
+  // Create segments based on frozen state while spinning and live targets in idle state.
   const segments = useMemo<SegmentItem[]>(
-    () => createSegments(developers, frozenTarget, frozenSeed, reelIndex),
-    [developers, frozenTarget, frozenSeed, reelIndex],
+    () => createSegments(developers, segmentTarget, frozenSeed, reelIndex),
+    [developers, segmentTarget, frozenSeed, reelIndex],
   );
 
   // When targetDeveloper changes, store it as pending (don't apply yet)
   useEffect(() => {
     pendingTargetRef.current = targetDeveloper;
   }, [targetDeveloper]);
+
+  useEffect(() => {
+    if (isSpinning) return;
+
+    if (spinGroupRef.current) {
+      spinGroupRef.current.rotation.x = 0;
+    }
+  }, [isSpinning, targetDeveloper]);
 
   // Randomize segments callback - called when reel reaches speed threshold
   const applyPendingChanges = useCallback(() => {
@@ -158,6 +172,12 @@ export const Reel = ({
     if (!spinGroupRef.current) return;
 
     if (isSpinning) {
+      if (!wasSpinningRef.current) {
+        // Start spin from what the user just saw, not from freshly assigned winner.
+        setFrozenSeed(Date.now());
+        setFrozenTarget(lastVisibleTargetRef.current);
+      }
+
       hasStoppedRef.current = false;
       shouldStopRef.current = false;
       wasSpinningRef.current = true;
@@ -197,6 +217,7 @@ export const Reel = ({
           wasSpinningRef.current = false;
           shouldStopRef.current = false;
           hasStoppedRef.current = true;
+          setFrozenTarget(null);
 
           const targetAngle =
             (Math.PI * 2 - finalTargetIndex * segmentAngle) % (Math.PI * 2);
@@ -220,6 +241,8 @@ export const Reel = ({
       } else {
         spinGroupRef.current.rotation.x += velocityRef.current * delta;
       }
+    } else {
+      lastVisibleTargetRef.current = targetDeveloper;
     }
   });
 
