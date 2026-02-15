@@ -1,4 +1,11 @@
 import { create } from "zustand";
+import {
+  getAvailableDevelopers,
+  getMaxWinnerCountFromDevelopers,
+  loadPersistedRouletteState,
+  savePersistedRouletteState,
+  MIN_AVAILABLE_DEVELOPERS,
+} from "./roulettePersistence";
 
 export interface Developer {
   id: string;
@@ -52,13 +59,6 @@ const selectRandomWinners = (
   return shuffled.slice(0, Math.min(count, developers.length));
 };
 
-const MAX_WINNER_SLOTS = 3;
-const MIN_AVAILABLE_DEVELOPERS = 2;
-
-const getMaxWinnerCountFromDevelopers = (developers: Developer[]): number => {
-  return Math.max(1, Math.min(MAX_WINNER_SLOTS, developers.length - 1));
-};
-
 const getPreviewWinners = (
   developers: Developer[],
   winnerCount: number,
@@ -66,15 +66,24 @@ const getPreviewWinners = (
   return selectRandomWinners(developers, winnerCount);
 };
 
+const initialPersistedState = loadPersistedRouletteState(mockDevelopers);
+const initialDevelopers = getAvailableDevelopers(
+  mockDevelopers,
+  initialPersistedState.excludedDeveloperIds,
+);
+
 export const useGameStore = create<GameState>((set, get) => ({
   isSpinning: false,
   allDevelopers: mockDevelopers,
-  developers: mockDevelopers,
-  excludedDeveloperIds: [],
-  previewWinners: getPreviewWinners(mockDevelopers, 2),
+  developers: initialDevelopers,
+  excludedDeveloperIds: initialPersistedState.excludedDeveloperIds,
+  previewWinners: getPreviewWinners(
+    initialDevelopers,
+    initialPersistedState.winnerCount,
+  ),
   winners: [],
   pendingWinners: [],
-  winnerCount: 2,
+  winnerCount: initialPersistedState.winnerCount,
 
   spin: () => {
     const { isSpinning, developers, winnerCount } = get();
@@ -102,9 +111,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   setWinnerCount: (count: number) => {
-    const { developers } = get();
+    const { developers, excludedDeveloperIds } = get();
     const maxWinnerCount = getMaxWinnerCountFromDevelopers(developers);
     const nextWinnerCount = Math.max(1, Math.min(count, maxWinnerCount));
+
+    savePersistedRouletteState({
+      excludedDeveloperIds,
+      winnerCount: nextWinnerCount,
+    });
 
     set({
       winnerCount: nextWinnerCount,
@@ -136,6 +150,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       1,
       Math.min(get().winnerCount, nextMaxWinnerCount),
     );
+
+    savePersistedRouletteState({
+      excludedDeveloperIds: nextExcludedDeveloperIds,
+      winnerCount: nextWinnerCount,
+    });
 
     set({
       excludedDeveloperIds: nextExcludedDeveloperIds,
