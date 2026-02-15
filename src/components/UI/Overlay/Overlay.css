@@ -58,6 +58,7 @@
 .reviewer-btn {
   width: 2rem;
   height: 2rem;
+  padding: 0;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
   color: white;
@@ -85,6 +86,115 @@
   font-size: 1.125rem;
   width: 1.5rem;
   text-align: center;
+}
+
+.developer-menu-btn {
+  position: absolute;
+  left: 2rem;
+  bottom: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #f3f4f6;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  font-size: 1.25rem;
+  pointer-events: auto;
+}
+
+.developer-menu-btn svg {
+  width: 1.42rem;
+  height: 1.42rem;
+}
+
+.developer-filter-panel {
+  position: absolute;
+  left: 2rem;
+  bottom: 5.3rem;
+  width: min(92vw, 420px);
+  max-height: min(65vh, 520px);
+  overflow-y: auto;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+.developer-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.developer-filter-title {
+  color: #f3f4f6;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.developer-filter-close {
+  background: none;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+}
+
+.developer-filter-close svg {
+  width: 1.08rem;
+  height: 1.08rem;
+}
+
+.developer-filter-close:hover {
+  color: white;
+}
+
+.developer-list {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.developer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.developer-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.developer-toggle input {
+  accent-color: #22c55e;
+}
+
+.developer-toggle--excluded {
+  color: #9ca3af;
+}
+
+.developer-filter-hint {
+  margin-top: 0.5rem;
+  color: #9ca3af;
+  font-size: 0.75rem;
 }
 
 /* Spin Button */
@@ -179,10 +289,18 @@
 .winners-close {
   background: none;
   border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #9ca3af;
   cursor: pointer;
   font-size: 0.875rem;
   transition: color 0.2s;
+}
+
+.winners-close svg {
+  width: 1.08rem;
+  height: 1.08rem;
 }
 
 .winners-close:hover {
@@ -214,22 +332,6 @@
 .winner-avatar-wrapper {
   position: relative;
   flex-shrink: 0;
-}
-
-.winner-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 20px;
-  height: 20px;
-  background: linear-gradient(to right, #fbbf24, #f97316);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: black;
 }
 
 .winner-info {
